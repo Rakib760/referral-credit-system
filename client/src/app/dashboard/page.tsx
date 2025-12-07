@@ -317,7 +317,6 @@ const realStats = {
                 value={realStats.totalReferred}
                 icon={<Users className="w-6 h-6" />}
                 color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                description="Users signed up with your link"
                 change={realStats.totalReferred > 0 ? `+${realStats.totalReferred}` : undefined}
               />
               
@@ -327,7 +326,6 @@ const realStats = {
                 value={realStats.activeReferrals}
                 icon={<UserCheck className="w-6 h-6" />}
                 color="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                description="Currently pending/completed"
                 change={realStats.activeReferrals > 0 ? `+${realStats.activeReferrals}` : undefined}
               />
               
@@ -337,7 +335,6 @@ const realStats = {
                 value={`$${realStats.totalPurchaseAmount}`}
                 icon={<DollarSign className="w-6 h-6" />}
                 color="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                description="From referral purchases"
                 change={realStats.totalPurchaseAmount > 0 ? `+$${realStats.totalPurchaseAmount}` : undefined}
               />
               
@@ -347,7 +344,6 @@ const realStats = {
                 value={`${realStats.conversionRate}%`}
                 icon={<Percent className="w-6 h-6" />}
                 color="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
-                description="Referral success rate"
                 change={realStats.conversionRate > 0 ? `+${realStats.conversionRate}%` : undefined}
               />
             </>

@@ -38,6 +38,7 @@ export interface Purchase {
   amount: number;
   creditsEarned: number;
   createdAt: string;
+  referralCreditsAwarded: boolean;
 }
 
 export interface AuthState {

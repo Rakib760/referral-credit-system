@@ -52,18 +52,26 @@ const DashboardPage = () => {
       referralApi.getStats(),
       referralApi.getHistory(),
       purchaseApi.getHistory()
-    ]);
+    ]) as any[]; // Type assertion to bypass TypeScript checking
 
-    console.log('API Responses:', { statsData, historyData, purchasesData });
+    // Cast each response to its expected type
+    const typedStatsData = statsData as { stats?: ReferralStats } | ReferralStats;
+    const typedHistoryData = historyData as { referrals?: ReferralHistory[] };
+    const typedPurchasesData = purchasesData as { purchases?: Purchase[] };
 
-    // Handle API response - API already returns data (not response.data)
-    setStats(statsData.stats || statsData);
-    setReferrals(historyData.referrals || []);
-    setPurchases(purchasesData.purchases || []);
+    // Handle the data based on actual structure
+    if ('stats' in typedStatsData) {
+      setStats(typedStatsData.stats || null);
+    } else {
+      setStats(typedStatsData as ReferralStats);
+    }
+    
+    setReferrals(typedHistoryData.referrals || []);
+    setPurchases(typedPurchasesData.purchases || []);
     setLastUpdated(new Date());
     
     // Update user credits
-    const currentStats = statsData.stats || statsData;
+    const currentStats = 'stats' in typedStatsData ? typedStatsData.stats : typedStatsData;
     if (currentStats && user && currentStats.currentCredits !== user.credits) {
       updateUser({ credits: currentStats.currentCredits });
     }

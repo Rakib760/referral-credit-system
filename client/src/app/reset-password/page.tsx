@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import ResetPasswordForm from '@/components/Auth/ResetPasswordForm';
+import React from "react";
+import ResetPasswordForm from "@/components/Auth/ResetPasswordForm";
 
 const ResetPasswordPage = () => {
   return (
@@ -15,14 +15,14 @@ const ResetPasswordPage = () => {
             Create a strong new password for your account
           </p>
         </div>
-        
+
         <ResetPasswordForm />
       </div>
     </div>
   );
 };
 
-// ⚠️ ADD THIS LINE - Fixes prerendering error
-export const dynamic = 'force-dynamic';
+// At the bottom of the file, after your component:
+export const dynamic = "force-dynamic";
 
 export default ResetPasswordPage;

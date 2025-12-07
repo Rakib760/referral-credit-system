@@ -20,17 +20,24 @@ module.exports = {
           700: "#1d4ed8",
           800: "#1e40af",
           900: "#1e3a8a",
+          950: "#172554",
         },
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
         "slide-up": "slideUp 0.3s ease-out",
         "pulse-slow": "pulse 3s infinite",
+        "bounce-slow": "bounce 2s infinite",
+        "spin-slow": "spin 3s linear infinite",
+        "ping-slow": "ping 3s cubic-bezier(0, 0, 0.2, 1) infinite",
+        "wiggle-slow": "wiggle 3s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+          "75%": { opacity: "0.75" },
         },
         slideUp: {
           "0%": { transform: "translateY(10px)", opacity: "0" },

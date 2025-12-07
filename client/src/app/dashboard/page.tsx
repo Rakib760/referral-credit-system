@@ -45,33 +45,37 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, [isAuthenticated, router]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      const [statsData, historyData, purchasesData] = await Promise.all([
-        referralApi.getStats(),
-        referralApi.getHistory(),
-        purchaseApi.getHistory()
-      ]);
+ const fetchDashboardData = async () => {
+  try {
+    setIsLoading(true);
+    const [statsData, historyData, purchasesData] = await Promise.all([
+      referralApi.getStats(),
+      referralApi.getHistory(),
+      purchaseApi.getHistory()
+    ]);
 
-      setStats(statsData.stats);
-      setReferrals(historyData.referrals || []);
-      setPurchases(purchasesData.purchases || []);
-      setLastUpdated(new Date());
-      
-      // Update user credits in store if they changed
-      if (statsData.stats && user && statsData.stats.currentCredits !== user.credits) {
-        updateUser({ credits: statsData.stats.currentCredits });
-      }
+    console.log('API Responses:', { statsData, historyData, purchasesData });
 
-      toast.success('Dashboard updated!');
-    } catch (error: any) {
-      console.error('Failed to load dashboard:', error);
-      toast.error(error.error || 'Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
+    // Handle API response - API already returns data (not response.data)
+    setStats(statsData.stats || statsData);
+    setReferrals(historyData.referrals || []);
+    setPurchases(purchasesData.purchases || []);
+    setLastUpdated(new Date());
+    
+    // Update user credits
+    const currentStats = statsData.stats || statsData;
+    if (currentStats && user && currentStats.currentCredits !== user.credits) {
+      updateUser({ credits: currentStats.currentCredits });
     }
-  };
+
+    toast.success('Dashboard updated!');
+  } catch (error: any) {
+    console.error('Failed to load dashboard:', error);
+    toast.error(error.message || 'Failed to load dashboard data');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const refreshData = () => {
     fetchDashboardData();

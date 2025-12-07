@@ -363,7 +363,6 @@ const realStats = {
           value={realStats.totalCreditsEarned}
           icon={<Award className="w-6 h-6" />}
           color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-          description="From successful referrals"
           change={realStats.totalCreditsEarned > 0 ? `+${realStats.totalCreditsEarned}` : undefined}
         />
         
@@ -372,7 +371,6 @@ const realStats = {
           value={realStats.convertedUsers}
           icon={<TrendingUp className="w-6 h-6" />}
           color="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
-          description="Made first purchase"
           change={realStats.convertedUsers > 0 ? `+${realStats.convertedUsers}` : undefined}
         />
         
@@ -381,7 +379,6 @@ const realStats = {
           value={`$${realStats.averagePurchaseValue}`}
           icon={<CreditCard className="w-6 h-6" />}
           color="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
-          description="Per referral purchase"
           change={realStats.averagePurchaseValue > 0 ? `+$${realStats.averagePurchaseValue}` : undefined}
         />
         
@@ -390,7 +387,6 @@ const realStats = {
           value={realStats.completedReferrals}
           icon={<Activity className="w-6 h-6" />}
           color="bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400"
-          description="Successful conversions"
           change={realStats.completedReferrals > 0 ? `+${realStats.completedReferrals}` : undefined}
         />
       </motion.div>

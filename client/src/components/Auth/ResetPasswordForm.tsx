@@ -26,9 +26,9 @@ const ResetPasswordForm: React.FC = () => {
       }
 
       try {
-        const response = await authApi.verifyResetToken(token);
+        const response = await authApi.verifyResetToken(token) as any;
         setIsTokenValid(true);
-        setEmail(response.email);
+        setEmail(response.email || response.data?.email);
       } catch (error) {
         setIsTokenValid(false);
         toast.error('Invalid or expired reset link');
@@ -68,7 +68,7 @@ const ResetPasswordForm: React.FC = () => {
         router.push('/login');
       }, 3000);
     } catch (error: any) {
-      toast.error(error.error || 'Failed to reset password');
+      toast.error(error.message || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }

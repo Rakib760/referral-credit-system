@@ -45,45 +45,52 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, [isAuthenticated, router]);
 
- const fetchDashboardData = async () => {
-  try {
-    setIsLoading(true);
-    const [statsData, historyData, purchasesData] = await Promise.all([
-      referralApi.getStats(),
-      referralApi.getHistory(),
-      purchaseApi.getHistory()
-    ]) as any[]; // Type assertion to bypass TypeScript checking
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const [statsData, historyData, purchasesData] = await Promise.all([
+        referralApi.getStats(),
+        referralApi.getHistory(),
+        purchaseApi.getHistory()
+      ]) as any[];
 
-    // Cast each response to its expected type
-    const typedStatsData = statsData as { stats?: ReferralStats } | ReferralStats;
-    const typedHistoryData = historyData as { referrals?: ReferralHistory[] };
-    const typedPurchasesData = purchasesData as { purchases?: Purchase[] };
+      // Cast each response to its expected type
+      const typedStatsData = statsData as { stats?: ReferralStats } | ReferralStats;
+      const typedHistoryData = historyData as { referrals?: ReferralHistory[] };
+      const typedPurchasesData = purchasesData as { purchases?: Purchase[] };
 
-    // Handle the data based on actual structure
-    if ('stats' in typedStatsData) {
-      setStats(typedStatsData.stats || null);
-    } else {
-      setStats(typedStatsData as ReferralStats);
+      // Handle the data based on actual structure
+      if ('stats' in typedStatsData) {
+        setStats(typedStatsData.stats || null);
+      } else {
+        setStats(typedStatsData as ReferralStats);
+      }
+      
+      setReferrals(typedHistoryData.referrals || []);
+      setPurchases(typedPurchasesData.purchases || []);
+      setLastUpdated(new Date());
+      
+      // Update user credits - FIXED
+      let currentStats: ReferralStats | null = null;
+      
+      if ('stats' in typedStatsData) {
+        currentStats = typedStatsData.stats || null;
+      } else {
+        currentStats = typedStatsData as ReferralStats;
+      }
+      
+      if (currentStats && user && currentStats.currentCredits !== user.credits) {
+        updateUser({ credits: currentStats.currentCredits });
+      }
+
+      toast.success('Dashboard updated!');
+    } catch (error: any) {
+      console.error('Failed to load dashboard:', error);
+      toast.error(error.message || 'Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setReferrals(typedHistoryData.referrals || []);
-    setPurchases(typedPurchasesData.purchases || []);
-    setLastUpdated(new Date());
-    
-    // Update user credits
-    const currentStats = 'stats' in typedStatsData ? typedStatsData.stats : typedStatsData;
-    if (currentStats && user && currentStats.currentCredits !== user.credits) {
-      updateUser({ credits: currentStats.currentCredits });
-    }
-
-    toast.success('Dashboard updated!');
-  } catch (error: any) {
-    console.error('Failed to load dashboard:', error);
-    toast.error(error.message || 'Failed to load dashboard data');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const refreshData = () => {
     fetchDashboardData();
@@ -111,21 +118,21 @@ const DashboardPage = () => {
         product.id,
         product.name,
         product.amount
-      );
+      ) as any;
 
       // Update local state
-      updateUser({ credits: response.user.credits });
+      updateUser({ credits: response.user?.credits || response.credits });
       
       // Refresh dashboard data
       fetchDashboardData();
       
       toast.success(
         response.referral 
-          ? `Purchase successful! Earned ${response.purchase.referralCreditsAwarded ? '2 credits!' : 'no credits'}`
+          ? `Purchase successful! Earned ${response.purchase?.referralCreditsAwarded ? '2 credits!' : 'no credits'}`
           : 'Purchase completed!'
       );
     } catch (error: any) {
-      toast.error(error.error || 'Purchase failed');
+      toast.error(error.message || 'Purchase failed');
     }
   };
 

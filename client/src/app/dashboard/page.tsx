@@ -148,20 +148,21 @@ const DashboardPage = () => {
   }
 
   // Calculate real stats from data
-  const realStats = {
-    totalReferred: stats?.totalReferred || 0,
-    convertedUsers: stats?.convertedUsers || 0,
-    totalCreditsEarned: stats?.totalCreditsEarned || 0,
-    currentCredits: stats?.currentCredits || user?.credits || 0,
-    // Calculate conversion rate
-    conversionRate: stats?.totalReferred ? Math.round((stats.convertedUsers / stats.totalReferred) * 100) : 0,
-    // Calculate from purchases
-    totalPurchaseAmount: purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
-    averagePurchaseValue: purchases.length > 0 ? Math.round(purchases.reduce((sum, purchase) => sum + purchase.amount, 0) / purchases.length) : 0,
-    // From referral data
-    activeReferrals: referrals.filter(ref => ref.status === 'active' || ref.status === 'pending').length,
-    completedReferrals: referrals.filter(ref => ref.status === 'completed').length
-  };
+ // Calculate real stats from data
+const realStats = {
+  totalReferred: stats?.totalReferred || 0,
+  convertedUsers: stats?.convertedUsers || 0,
+  totalCreditsEarned: stats?.totalCreditsEarned || 0,
+  currentCredits: stats?.currentCredits || user?.credits || 0,
+  // Calculate conversion rate
+  conversionRate: stats?.totalReferred ? Math.round((stats.convertedUsers / stats.totalReferred) * 100) : 0,
+  // Calculate from purchases
+  totalPurchaseAmount: purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
+  averagePurchaseValue: purchases.length > 0 ? Math.round(purchases.reduce((sum, purchase) => sum + purchase.amount, 0) / purchases.length) : 0,
+  // From referral data - Use correct status values
+  activeReferrals: referrals.filter(ref => ref.status === 'pending' || ref.status === 'converted').length,
+  completedReferrals: referrals.filter(ref => ref.status === 'converted').length
+};
 
   return (
     <div className="space-y-8 pb-12">

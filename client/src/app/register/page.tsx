@@ -118,7 +118,6 @@ const RegisterPage = () => {
   );
 };
 
-// ⚠️ ADD THIS LINE - Fixes prerendering error
+// ⚠️ CRITICAL: This must be the last line
 export const dynamic = 'force-dynamic';
-
 export default RegisterPage;

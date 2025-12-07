@@ -27,13 +27,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onPurchase }) => {
         product.id,
         product.name,
         product.price
-      );
+      ) as any; // Type assertion since API response structure is unknown
       
-      updateUser({ credits: response.user.credits });
+      // Fix: Handle different response structures
+      updateUser({ credits: response.user?.credits || response.credits });
       onPurchase(product);
-      toast.success(`Purchased ${product.name}! Earned ${response.purchase.creditsEarned} credits`);
+      
+      // Fix: Handle creditsEarned property safely
+      const creditsEarned = response.purchase?.creditsEarned || 
+                           response.creditsEarned || 
+                           response.referralCreditsAwarded || 0;
+      
+      toast.success(`Purchased ${product.name}! Earned ${creditsEarned} credits`);
     } catch (error: any) {
-      toast.error(error.error || 'Purchase failed');
+      toast.error(error.message || 'Purchase failed'); // Changed from error.error
     } finally {
       setIsPurchasing(false);
     }

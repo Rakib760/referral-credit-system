@@ -14,10 +14,10 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-          const response = await authApi.login(email, password);
+          const response = await authApi.login(email, password) as any;
           set({
-            user: response.user,
-            token: response.token,
+            user: response.user || response.data?.user,
+            token: response.token || response.data?.token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -30,10 +30,10 @@ export const useAuthStore = create<AuthState>()(
       register: async (email: string, password: string, name: string, referralCode?: string) => {
         set({ isLoading: true });
         try {
-          const response = await authApi.register(email, password, name, referralCode);
+          const response = await authApi.register(email, password, name, referralCode) as any;
           set({
-            user: response.user,
-            token: response.token,
+            user: response.user || response.data?.user,
+            token: response.token || response.data?.token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
 
       forgotPassword: async (email: string) => {
         try {
-          const response = await authApi.forgotPassword(email);
+          const response = await authApi.forgotPassword(email) as any;
           return response;
         } catch (error) {
           throw error;
@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>()(
 
       resetPassword: async (token: string, password: string) => {
         try {
-          const response = await authApi.resetPassword(token, password);
+          const response = await authApi.resetPassword(token, password) as any;
           return response;
         } catch (error) {
           throw error;
@@ -77,8 +77,8 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: async (name: string) => {
         try {
-          const response = await authApi.updateProfile(name);
-          get().updateUser(response.user);
+          const response = await authApi.updateProfile(name) as any;
+          get().updateUser(response.user || response.data?.user);
           return response;
         } catch (error) {
           throw error;

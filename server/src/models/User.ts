@@ -1,14 +1,15 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 
-// Interface
 export interface IUser extends mongoose.Document {
   email: string;
   password: string;
   name: string;
   referralCode: string;
   credits: number;
+  referredBy: mongoose.Types.ObjectId; // Track who referred this user
+  totalReferrals: number; // Track total referrals made
+  successfulReferrals: number; // Track successful conversions
   isVerified: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
@@ -47,6 +48,19 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  totalReferrals: {
+    type: Number,
+    default: 0
+  },
+  successfulReferrals: {
+    type: Number,
+    default: 0
+  },
   isVerified: {
     type: Boolean,
     default: false
@@ -59,9 +73,8 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
-// Pre-save hook WITHOUT next() parameter issue
+// Pre-save hook
 UserSchema.pre('save', async function() {
-  // Only hash the password if it has been modified (or is new)
   if (this.isModified('password')) {
     try {
       const salt = await bcrypt.genSalt(10);

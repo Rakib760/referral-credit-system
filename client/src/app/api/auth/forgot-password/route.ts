@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  console.log('🚀 Password reset API called');
+  console.log('🚀 Forgot password API called');
   
   try {
     const body = await request.json();
@@ -14,10 +14,19 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`📧 Sending real email to: ${email}`);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json(
+        { error: 'Please enter a valid email address' },
+        { status: 400 }
+      );
+    }
 
-    // Call your BACKEND API (adjust URL to your backend)
+    console.log(`📧 Forwarding password reset request to backend for: ${email}`);
+
+    // Your backend URL
     const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+    
+    console.log(`📡 Calling backend: ${BACKEND_URL}/api/auth/forgot-password`);
     
     const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
       method: 'POST',
@@ -30,14 +39,17 @@ export async function POST(request: Request) {
     const backendData = await response.json();
 
     if (!response.ok) {
-      throw new Error(backendData.message || 'Backend request failed');
+      console.error('❌ Backend error:', backendData);
+      throw new Error(backendData.message || backendData.error || 'Backend request failed');
     }
 
     console.log('✅ Backend email sent successfully!');
+    console.log('📨 Backend response:', backendData);
     
     return NextResponse.json({
       success: true,
-      message: 'Password reset email has been sent to your inbox!'
+      message: 'Password reset email has been sent to your inbox!',
+      backendResponse: backendData // Optional: include backend response
     });
 
   } catch (error: any) {

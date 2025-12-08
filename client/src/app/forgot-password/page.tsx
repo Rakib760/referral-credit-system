@@ -11,40 +11,70 @@ const ForgotPasswordPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setError('');
 
-    try {
-      // Direct API call
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+  // Email validation
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setError('Please enter a valid email address');
+    setIsLoading(false);
+    return;
+  }
 
-      const data = await response.json();
+  try {
+    console.log('📧 Sending forgot password request for:', email);
+    
+    const response = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send reset link');
+    console.log('📊 Response status:', response.status, response.statusText);
+    
+    const data = await response.json();
+    console.log('📨 Response data:', data);
+
+    if (!response.ok) {
+      // Handle different error types
+      if (data.error) {
+        throw new Error(data.error);
+      } else if (data.message) {
+        throw new Error(data.message);
+      } else {
+        throw new Error(`Request failed with status ${response.status}`);
       }
-
-      setIsSubmitted(true);
-      console.log('✅ Success! Check console for reset link.');
-      
-      // Show the reset link in console for demo
-      console.log(`📧 DEMO: Reset link would be sent to: ${email}`);
-      console.log(`🔗 DEMO Reset Link: http://localhost:3000/reset-password?token=demo_${Date.now()}&email=${encodeURIComponent(email)}`);
-
-    } catch (error: any) {
-      setError(error.message || 'Something went wrong');
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    setIsSubmitted(true);
+    console.log('✅ Success! Demo reset link created.');
+    
+    // Demo reset link
+    const demoToken = `demo_token_${Date.now()}`;
+    const demoResetLink = `http://localhost:3000/reset-password?token=${demoToken}&email=${encodeURIComponent(email)}`;
+    
+    console.log(`🔗 DEMO Reset Link: ${demoResetLink}`);
+    console.log('💡 Note: In production, an actual email would be sent.');
+
+  } catch (error: any) {
+    console.error('❌ Error details:', error);
+    
+    // Provide user-friendly error messages
+    if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+      setError('Network error. Please check if the backend server is running.');
+    } else if (error.message.includes('500')) {
+      setError('Server error. Please try again later.');
+    } else {
+      setError(error.message || 'Something went wrong. Please try again.');
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Success State
   if (isSubmitted) {

@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -27,6 +27,21 @@ import { ReferralStats, ReferralHistory, Purchase } from '@/types';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
+// Define response types for better type safety
+interface ApiResponse<T> {
+  success?: boolean;
+  stats?: T;
+  referrals?: ReferralHistory[];
+  purchases?: Purchase[];
+  user?: {
+    credits: number;
+  };
+  credits?: number;
+  referral?: any;
+  purchase?: any;
+  [key: string]: any;
+}
+
 const DashboardPage = () => {
   const router = useRouter();
   const { isAuthenticated, user, logout, updateUser } = useAuthStore();
@@ -48,40 +63,68 @@ const DashboardPage = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [statsData, historyData, purchasesData] = await Promise.all([
+      
+      // Use Promise.allSettled to handle individual API failures gracefully
+      const [statsResult, historyResult, purchasesResult] = await Promise.allSettled([
         referralApi.getStats(),
         referralApi.getHistory(),
         purchaseApi.getHistory()
-      ]) as any[];
+      ]);
 
-      // Cast each response to its expected type
-      const typedStatsData = statsData as { stats?: ReferralStats } | ReferralStats;
-      const typedHistoryData = historyData as { referrals?: ReferralHistory[] };
-      const typedPurchasesData = purchasesData as { purchases?: Purchase[] };
-
-      // Handle the data based on actual structure
-      if ('stats' in typedStatsData) {
-        setStats(typedStatsData.stats || null);
+      // Process stats data
+      if (statsResult.status === 'fulfilled') {
+        const statsData = statsResult.value as ApiResponse<ReferralStats>;
+        
+        if (statsData && typeof statsData === 'object') {
+          if ('stats' in statsData && statsData.stats) {
+            setStats(statsData.stats);
+          } else if ('totalReferred' in statsData || 'convertedUsers' in statsData) {
+            // If statsData is the stats object itself
+            setStats(statsData as ReferralStats);
+          } else {
+            setStats(null);
+          }
+        } else {
+          setStats(null);
+        }
       } else {
-        setStats(typedStatsData as ReferralStats);
+        console.error('Stats API failed:', statsResult.reason);
+        setStats(null);
       }
-      
-      setReferrals(typedHistoryData.referrals || []);
-      setPurchases(typedPurchasesData.purchases || []);
+
+      // Process referrals data
+      if (historyResult.status === 'fulfilled') {
+        const historyData = historyResult.value as ApiResponse<ReferralHistory[]> | ReferralHistory[];
+        
+        if (Array.isArray(historyData)) {
+          setReferrals(historyData);
+        } else if (historyData && 'referrals' in historyData && Array.isArray(historyData.referrals)) {
+          setReferrals(historyData.referrals);
+        } else {
+          setReferrals([]);
+        }
+      } else {
+        console.error('History API failed:', historyResult.reason);
+        setReferrals([]);
+      }
+
+      // Process purchases data
+      if (purchasesResult.status === 'fulfilled') {
+        const purchasesData = purchasesResult.value as ApiResponse<Purchase[]> | Purchase[];
+        
+        if (Array.isArray(purchasesData)) {
+          setPurchases(purchasesData);
+        } else if (purchasesData && 'purchases' in purchasesData && Array.isArray(purchasesData.purchases)) {
+          setPurchases(purchasesData.purchases);
+        } else {
+          setPurchases([]);
+        }
+      } else {
+        console.error('Purchases API failed:', purchasesResult.reason);
+        setPurchases([]);
+      }
+
       setLastUpdated(new Date());
-      
-      // Update user credits - FIXED
-      let currentStats: ReferralStats | null = null;
-      
-      if ('stats' in typedStatsData) {
-        currentStats = typedStatsData.stats || null;
-      } else {
-        currentStats = typedStatsData as ReferralStats;
-      }
-      
-      if (currentStats && user && currentStats.currentCredits !== user.credits) {
-        updateUser({ credits: currentStats.currentCredits });
-      }
 
       toast.success('Dashboard updated!');
     } catch (error: any) {
@@ -118,23 +161,54 @@ const DashboardPage = () => {
         product.id,
         product.name,
         product.amount
-      ) as any;
+      ) as ApiResponse<Purchase>;
 
-      // Update local state
-      updateUser({ credits: response.user?.credits || response.credits });
+      console.log('Purchase response:', response);
+
+      // Update user credits based on response
+      let updatedCredits = user?.credits || 0;
+      
+      // Check different possible response structures
+      if (response && typeof response === 'object') {
+        if (response.user && 'credits' in response.user) {
+          updatedCredits = response.user.credits;
+        } else if ('credits' in response) {
+          updatedCredits = response.credits as number;
+        } else if (stats?.currentCredits !== undefined) {
+          // If we have stats, use that + 2 credits for the purchase
+          updatedCredits = stats.currentCredits + 2;
+        } else {
+          // Default: add 2 credits
+          updatedCredits = (user?.credits || 0) + 2;
+        }
+        
+        updateUser({ credits: updatedCredits });
+      }
+
+      // Show appropriate toast message
+      const hasEarnedCredits = response && typeof response === 'object' && 
+        ('referral' in response || 'purchase' in response);
+      
+      toast.success(
+        hasEarnedCredits 
+          ? `Purchase successful! Earned 2 credits!`
+          : 'Purchase completed!'
+      );
       
       // Refresh dashboard data
       fetchDashboardData();
-      
-      toast.success(
-        response.referral 
-          ? `Purchase successful! Earned ${response.purchase?.referralCreditsAwarded ? '2 credits!' : 'no credits'}`
-          : 'Purchase completed!'
-      );
     } catch (error: any) {
+      console.error('Purchase error:', error);
       toast.error(error.message || 'Purchase failed');
     }
   };
+
+  // Update user credits when stats change
+  useEffect(() => {
+    if (stats?.currentCredits !== undefined && user && stats.currentCredits !== user.credits) {
+      updateUser({ credits: stats.currentCredits });
+    }
+  }, [stats, user, updateUser]);
 
   if (!isAuthenticated) {
     return (
@@ -147,22 +221,69 @@ const DashboardPage = () => {
     );
   }
 
-  // Calculate real stats from data
- // Calculate real stats from data
+  // Calculate real stats from data with safe defaults
+  // Calculate real stats from data with safe defaults
 const realStats = {
   totalReferred: stats?.totalReferred || 0,
   convertedUsers: stats?.convertedUsers || 0,
   totalCreditsEarned: stats?.totalCreditsEarned || 0,
   currentCredits: stats?.currentCredits || user?.credits || 0,
-  // Calculate conversion rate
-  conversionRate: stats?.totalReferred ? Math.round((stats.convertedUsers / stats.totalReferred) * 100) : 0,
+  // Calculate conversion rate safely
+  conversionRate: stats?.totalReferred && stats.totalReferred > 0 
+    ? Math.round((stats.convertedUsers / stats.totalReferred) * 100) 
+    : 0,
   // Calculate from purchases
-  totalPurchaseAmount: purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
-  averagePurchaseValue: purchases.length > 0 ? Math.round(purchases.reduce((sum, purchase) => sum + purchase.amount, 0) / purchases.length) : 0,
-  // From referral data - Use correct status values
-  activeReferrals: referrals.filter(ref => ref.status === 'pending' || ref.status === 'converted').length,
+  totalPurchaseAmount: purchases.reduce((sum, purchase) => sum + (purchase.amount || 0), 0),
+  averagePurchaseValue: purchases.length > 0 
+    ? Math.round(purchases.reduce((sum, purchase) => sum + (purchase.amount || 0), 0) / purchases.length) 
+    : 0,
+  // Simple logic based on your actual statuses
+  activeReferrals: referrals.filter(ref => ref.status !== 'expired').length,
   completedReferrals: referrals.filter(ref => ref.status === 'converted').length
 };
+
+  // Filter functions for quick stats with proper date handling
+  const getTodaysReferrals = () => {
+    const today = new Date().toDateString();
+    return referrals.filter(r => {
+      try {
+        return new Date(r.createdAt).toDateString() === today;
+      } catch {
+        return false;
+      }
+    }).length;
+  };
+
+  const getThisWeeksReferrals = () => {
+    const today = new Date();
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    
+    return referrals.filter(r => {
+      try {
+        const referralDate = new Date(r.createdAt);
+        return referralDate > weekAgo;
+      } catch {
+        return false;
+      }
+    }).length;
+  };
+
+  const getThisMonthsReferrals = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    return referrals.filter(r => {
+      try {
+        const referralDate = new Date(r.createdAt);
+        return referralDate.getMonth() === currentMonth && 
+               referralDate.getFullYear() === currentYear;
+      } catch {
+        return false;
+      }
+    }).length;
+  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -182,7 +303,7 @@ const realStats = {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">
-                    Welcome back, {user?.name || user?.email?.split('@')[0]}! 👋
+                    Welcome back, {user?.name || user?.email?.split('@')[0] || 'User'}! 👋
                   </h1>
                   <p className="opacity-90 mt-1">
                     Here's what's happening with your referral program today
@@ -243,7 +364,7 @@ const realStats = {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Referral Code</p>
-                <p className="text-xl font-bold mt-2 font-mono">{user?.referralCode}</p>
+                <p className="text-xl font-bold mt-2 font-mono">{user?.referralCode || 'N/A'}</p>
                 <p className="text-sm opacity-90 mt-1">Share to earn</p>
               </div>
               <Share2 className="w-10 h-10 opacity-80" />
@@ -332,10 +453,10 @@ const realStats = {
               {/* Total Revenue - Calculated from purchases */}
               <StatsCard
                 title="Total Revenue"
-                value={`$${realStats.totalPurchaseAmount}`}
+                value={`$${realStats.totalPurchaseAmount.toFixed(2)}`}
                 icon={<DollarSign className="w-6 h-6" />}
                 color="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                change={realStats.totalPurchaseAmount > 0 ? `+$${realStats.totalPurchaseAmount}` : undefined}
+                change={realStats.totalPurchaseAmount > 0 ? `+$${realStats.totalPurchaseAmount.toFixed(2)}` : undefined}
               />
               
               {/* Conversion Rate - Calculated */}
@@ -407,26 +528,15 @@ const realStats = {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Today's Clicks</span>
-                <span className="font-semibold">{referrals.filter(r => 
-                  new Date(r.createdAt).toDateString() === new Date().toDateString()
-                ).length}</span>
+                <span className="font-semibold">{getTodaysReferrals()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">This Week</span>
-                <span className="font-semibold">{referrals.filter(r => {
-                  const date = new Date(r.createdAt);
-                  const today = new Date();
-                  const weekAgo = new Date(today.setDate(today.getDate() - 7));
-                  return date > weekAgo;
-                }).length}</span>
+                <span className="font-semibold">{getThisWeeksReferrals()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">This Month</span>
-                <span className="font-semibold">{referrals.filter(r => {
-                  const date = new Date(r.createdAt);
-                  const today = new Date();
-                  return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-                }).length}</span>
+                <span className="font-semibold">{getThisMonthsReferrals()}</span>
               </div>
             </div>
           </div>
@@ -492,12 +602,12 @@ const realStats = {
                     <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900 dark:text-white">
-                          {purchase.productName}
+                          {purchase.productName || 'Unnamed Product'}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="font-medium text-gray-900 dark:text-white">
-                          ${purchase.amount}
+                          ${(purchase.amount || 0).toFixed(2)}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -510,7 +620,9 @@ const realStats = {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(purchase.createdAt).toLocaleDateString()}
+                        {purchase.createdAt 
+                          ? new Date(purchase.createdAt).toLocaleDateString()
+                          : 'Unknown date'}
                       </td>
                     </tr>
                   ))}
@@ -542,7 +654,7 @@ const realStats = {
           Data refreshes automatically. Click "Refresh" to update manually.
         </p>
       </div>
-    </div>
+     </div>
   );
 };
 

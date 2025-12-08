@@ -1,12 +1,17 @@
-/** @type {import(''next'').NextConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',  // Enable static export
-  basePath: '/referral-credit-system', // Your repo name
+  
+  // For GitHub Pages deployment
+  output: 'export',
+  basePath: process.env.NODE_ENV === 'production' ? '/referral-credit-system' : '',
   images: {
     unoptimized: true,
   },
-  trailingSlash: true, // Ensure trailing slashes for static export
+  trailingSlash: true,
+  
+  // Fix for 404 in development
+  distDir: '.next',
 }
 
 module.exports = nextConfig
